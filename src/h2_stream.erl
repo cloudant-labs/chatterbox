@@ -346,6 +346,18 @@ open(cast, recv_es,
              Stream}
     end;
 
+open(cast, {recv_rs, _ErrorCode},
+     #stream_state{
+        callback_mod=CB,
+        callback_state=CallbackState
+       }=Stream) ->
+    {ok, NewCBState} = callback(CB, on_end_stream, [], CallbackState),
+    {next_state,
+     closed,
+     Stream#stream_state{
+       callback_state=NewCBState
+      }, 0};
+
 open(cast, {recv_data,
       {#frame_header{
           flags=Flags,
@@ -544,6 +556,8 @@ half_closed_remote(cast,
             {next_state, closed, Stream, 0}
     end;
 
+half_closed_remote(cast, {recv_es, _ErrorCode}, Stream) ->
+    {next_state, closed, Stream, 0};
 
 half_closed_remote(cast, _,
        #stream_state{}=Stream) ->
@@ -655,6 +669,10 @@ half_closed_local(cast, recv_es,
        response_body = Data,
        callback_state=NewCBState
       }, 0};
+
+half_closed_local(cast, {recv_rs, _ErrorCode}, Stream) ->
+    half_closed_local(cast, recv_es, Stream);
+
 half_closed_local(cast, {send_t, _Trailers},
                   #stream_state{}) ->
     keep_state_and_data;
