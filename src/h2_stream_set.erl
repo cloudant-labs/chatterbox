@@ -681,6 +681,12 @@ s_send_what_we_can(SWS, _, #active_stream{queued_data=Data,
   when is_atom(Data) ->
     [h2_stream:send_data(Pid, Frame) || Frame <- Trailers],
     {SWS, S#active_stream{trailers=undefined}};
+s_send_what_we_can(SWS, _, #active_stream{send_window_size = 0} = S) ->
+    %% This stream has exhausted its send window
+    %% and is blocked from sending data. When this was
+    %% handled in the next clause it would result in
+    %% sending a DATA frame with zero length.
+    {SWS, S};
 s_send_what_we_can(SWS, MFS, #active_stream{}=Stream) ->
     %% We're coming in here with three numbers we need to look at:
     %% * Connection send window size
